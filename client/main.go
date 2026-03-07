@@ -28,7 +28,7 @@ const (
 )
 
 // Si on ne reçoit plus d’event pour une touche pendant ce temps, on la considère relâchée (la lib n’envoie pas de key release).
-const releaseDelay = 120 * time.Millisecond
+const releaseDelay = 600 * time.Millisecond
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
