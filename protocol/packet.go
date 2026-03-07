@@ -126,3 +126,29 @@ func (p *Packet) ButtonNames() []string {
 	}
 	return names
 }
+
+// Dpad bits (same as client).
+const (
+	DpadUp    = 1 << 0
+	DpadDown  = 1 << 1
+	DpadLeft  = 1 << 2
+	DpadRight = 1 << 3
+)
+
+// DpadNames returns D-pad direction names for display (e.g. "Haut", "Gauche").
+func (p *Packet) DpadNames() []string {
+	var names []string
+	if p.Dpad&DpadUp != 0 {
+		names = append(names, "Haut")
+	}
+	if p.Dpad&DpadDown != 0 {
+		names = append(names, "Bas")
+	}
+	if p.Dpad&DpadLeft != 0 {
+		names = append(names, "Gauche")
+	}
+	if p.Dpad&DpadRight != 0 {
+		names = append(names, "Droite")
+	}
+	return names
+}

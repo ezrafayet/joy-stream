@@ -162,24 +162,31 @@ func fetchPublicIP() string {
 }
 
 func printClients(clients map[string]*clientState) {
+	var line string
 	if len(clients) == 0 {
-		fmt.Printf("\r[%s] No clients connected. Waiting for packets...    ", time.Now().Format("15:04:05"))
-		return
-	}
-	lines := []string{fmt.Sprintf("[%s] %d client(s) connected:", time.Now().Format("15:04:05"), len(clients))}
-	for _, c := range clients {
-		line := "  " + c.Addr
-		if c.Last != nil {
-			line += " | seq=" + fmt.Sprint(c.Last.Sequence)
-			btns := c.Last.ButtonNames()
-			if len(btns) > 0 {
-				line += " | buttons: " + strings.Join(btns, ",")
+		line = fmt.Sprintf("[%s] No clients connected. Waiting for packets...", time.Now().Format("15:04:05"))
+	} else {
+		line = fmt.Sprintf("[%s] %d client(s): ", time.Now().Format("15:04:05"), len(clients))
+		for _, c := range clients {
+			line += c.Addr
+			if c.Last != nil {
+				btns := c.Last.ButtonNames()
+				dpad := c.Last.DpadNames()
+				if len(btns) > 0 || len(dpad) > 0 {
+					line += " → pressé: "
+					if len(btns) > 0 {
+						line += "boutons " + strings.Join(btns, ",")
+					}
+					if len(dpad) > 0 {
+						if len(btns) > 0 {
+							line += "  "
+						}
+						line += "D-pad " + strings.Join(dpad, ",")
+					}
+				}
 			}
-			line += fmt.Sprintf(" | L(%d,%d) R(%d,%d)", c.Last.LX, c.Last.LY, c.Last.RX, c.Last.RY)
-		} else {
-			line += " | no packet yet"
+			line += "  "
 		}
-		lines = append(lines, line)
 	}
-	fmt.Print("\r" + strings.Join(lines, "\n") + "\n")
+	fmt.Print("\r\033[K" + line)
 }

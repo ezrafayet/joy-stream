@@ -21,11 +21,14 @@ const (
 
 // D-pad bits
 const (
-	dpadUp = 1 << 0
-	dpadDown = 1 << 1
-	dpadLeft = 1 << 2
+	dpadUp    = 1 << 0
+	dpadDown  = 1 << 1
+	dpadLeft  = 1 << 2
 	dpadRight = 1 << 3
 )
+
+// Si on ne reçoit plus d’event pour une touche pendant ce temps, on la considère relâchée (la lib n’envoie pas de key release).
+const releaseDelay = 120 * time.Millisecond
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
@@ -57,7 +60,9 @@ func main() {
 		buttons uint16
 		dpad    uint8
 		mu      sync.Mutex
+		last    map[string]time.Time
 	)
+	last = make(map[string]time.Time)
 	keysChan, err := keyboard.GetKeys(10)
 	if err != nil {
 		fmt.Printf("Clavier GetKeys: %v\n", err)
@@ -68,26 +73,35 @@ func main() {
 			if e.Err != nil {
 				continue
 			}
+			now := time.Now()
 			mu.Lock()
 			switch {
 			case e.Key == keyboard.KeyEsc:
 				os.Exit(0)
 			case e.Key == keyboard.KeyArrowUp:
 				dpad |= dpadUp
+				last["up"] = now
 			case e.Key == keyboard.KeyArrowDown:
 				dpad |= dpadDown
+				last["down"] = now
 			case e.Key == keyboard.KeyArrowLeft:
 				dpad |= dpadLeft
+				last["left"] = now
 			case e.Key == keyboard.KeyArrowRight:
 				dpad |= dpadRight
+				last["right"] = now
 			case e.Rune == ' ':
 				buttons |= protocol.ButtonA
+				last["A"] = now
 			case e.Rune == 'a' || e.Rune == 'A':
 				buttons |= protocol.ButtonB
+				last["B"] = now
 			case e.Rune == 's' || e.Rune == 'S':
 				buttons |= protocol.ButtonY
+				last["Y"] = now
 			case e.Rune == 'd' || e.Rune == 'D':
 				buttons |= protocol.ButtonX
+				last["X"] = now
 			}
 			mu.Unlock()
 		}
@@ -100,6 +114,30 @@ func main() {
 
 	for range ticker.C {
 		mu.Lock()
+		now := time.Now()
+		for key, t := range last {
+			if now.Sub(t) > releaseDelay {
+				switch key {
+				case "up":
+					dpad &^= dpadUp
+				case "down":
+					dpad &^= dpadDown
+				case "left":
+					dpad &^= dpadLeft
+				case "right":
+					dpad &^= dpadRight
+				case "A":
+					buttons &^= protocol.ButtonA
+				case "B":
+					buttons &^= protocol.ButtonB
+				case "Y":
+					buttons &^= protocol.ButtonY
+				case "X":
+					buttons &^= protocol.ButtonX
+				}
+				delete(last, key)
+			}
+		}
 		p := &protocol.Packet{
 			Sequence: seq,
 			Buttons:  buttons,
@@ -136,8 +174,6 @@ func main() {
 		} else {
 			fmt.Print("\r  En attente...    ")
 		}
-		buttons = 0
-		dpad = 0
 		mu.Unlock()
 	}
 }
