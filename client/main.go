@@ -1,0 +1,143 @@
+// Client reads keyboard (arrows + Space/A/S/D), sends controller state to the server at 60 Hz.
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"net"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/eiannone/keyboard"
+	"github.com/joy-stream/protocol"
+)
+
+const (
+	defaultPort = 7355
+	targetHz   = 60
+)
+
+// D-pad bits
+const (
+	dpadUp = 1 << 0
+	dpadDown = 1 << 1
+	dpadLeft = 1 << 2
+	dpadRight = 1 << 3
+)
+
+func main() {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("IP du serveur: ")
+	serverIP, _ := reader.ReadString('\n')
+	serverIP = strings.TrimSpace(serverIP)
+	if serverIP == "" {
+		fmt.Println("IP requise.")
+		os.Exit(1)
+	}
+	addr := net.UDPAddr{IP: net.ParseIP(serverIP), Port: defaultPort}
+	conn, err := net.DialUDP("udp", nil, &addr)
+	if err != nil {
+		fmt.Printf("Connexion: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close()
+
+	if err := keyboard.Open(); err != nil {
+		fmt.Printf("Clavier: %v\n", err)
+		os.Exit(1)
+	}
+	defer keyboard.Close()
+
+	fmt.Println("Contrôles: Flèches = D-pad, Espace = A, A = B, S = Y, D = X. Échap pour quitter.")
+	fmt.Println()
+
+	var (
+		buttons uint16
+		dpad    uint8
+		mu      sync.Mutex
+	)
+	keysChan, err := keyboard.GetKeys(10)
+	if err != nil {
+		fmt.Printf("Clavier GetKeys: %v\n", err)
+		os.Exit(1)
+	}
+	go func() {
+		for e := range keysChan {
+			if e.Err != nil {
+				continue
+			}
+			mu.Lock()
+			switch {
+			case e.Key == keyboard.KeyEsc:
+				os.Exit(0)
+			case e.Key == keyboard.KeyArrowUp:
+				dpad |= dpadUp
+			case e.Key == keyboard.KeyArrowDown:
+				dpad |= dpadDown
+			case e.Key == keyboard.KeyArrowLeft:
+				dpad |= dpadLeft
+			case e.Key == keyboard.KeyArrowRight:
+				dpad |= dpadRight
+			case e.Rune == ' ':
+				buttons |= protocol.ButtonA
+			case e.Rune == 'a' || e.Rune == 'A':
+				buttons |= protocol.ButtonB
+			case e.Rune == 's' || e.Rune == 'S':
+				buttons |= protocol.ButtonY
+			case e.Rune == 'd' || e.Rune == 'D':
+				buttons |= protocol.ButtonX
+			}
+			mu.Unlock()
+		}
+	}()
+
+	seq := uint16(0)
+	buf := make([]byte, protocol.PacketSize)
+	ticker := time.NewTicker(time.Second / targetHz)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		mu.Lock()
+		p := &protocol.Packet{
+			Sequence: seq,
+			Buttons:  buttons,
+			LX:       128,
+			LY:       128,
+			RX:       128,
+			RY:       128,
+			Dpad:     dpad,
+		}
+		seq++
+		p.Marshal(buf)
+		conn.Write(buf)
+
+		if buttons != 0 || dpad != 0 {
+			names := p.ButtonNames()
+			var dpadStr []string
+			if dpad&dpadUp != 0 {
+				dpadStr = append(dpadStr, "Haut")
+			}
+			if dpad&dpadDown != 0 {
+				dpadStr = append(dpadStr, "Bas")
+			}
+			if dpad&dpadLeft != 0 {
+				dpadStr = append(dpadStr, "Gauche")
+			}
+			if dpad&dpadRight != 0 {
+				dpadStr = append(dpadStr, "Droite")
+			}
+			line := "Boutons: " + strings.Join(names, ", ")
+			if len(dpadStr) > 0 {
+				line += "  |  D-pad: " + strings.Join(dpadStr, ", ")
+			}
+			fmt.Printf("\r  %s    ", line)
+		} else {
+			fmt.Print("\r  En attente...    ")
+		}
+		buttons = 0
+		dpad = 0
+		mu.Unlock()
+	}
+}

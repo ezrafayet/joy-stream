@@ -61,6 +61,19 @@ func ParsePacket(data []byte) (*Packet, error) {
 	return p, nil
 }
 
+// Marshal writes the packet to a 12-byte slice (big-endian). Returns nil if dst is too short.
+func (p *Packet) Marshal(dst []byte) []byte {
+	if len(dst) < PacketSize {
+		return nil
+	}
+	binary.BigEndian.PutUint16(dst[0:2], p.Sequence)
+	binary.BigEndian.PutUint16(dst[2:4], p.Buttons)
+	dst[4], dst[5], dst[6], dst[7] = p.LX, p.LY, p.RX, p.RY
+	dst[8], dst[9] = p.Dpad, p.Misc
+	dst[10], dst[11] = 0, 0
+	return dst[:PacketSize]
+}
+
 // AxisToFloat converts a 0-255 axis value to -1..1 (128 = center).
 func AxisToFloat(v uint8) float64 {
 	return float64(int8(v-128)) / 127.0
