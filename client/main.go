@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -47,6 +48,18 @@ func main() {
 	}
 	defer conn.Close()
 
+	if runtime.GOOS == "linux" {
+		if err := runEvdev(conn); err != nil {
+			fmt.Println("evdev:", err)
+			fmt.Println("Utilisation du clavier terminal (relâchement avec délai).")
+			runKeyboard(conn)
+		}
+		return
+	}
+	runKeyboard(conn)
+}
+
+func runKeyboard(conn *net.UDPConn) {
 	if err := keyboard.Open(); err != nil {
 		fmt.Printf("Clavier: %v\n", err)
 		os.Exit(1)

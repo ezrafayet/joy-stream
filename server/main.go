@@ -70,11 +70,13 @@ func main() {
 				c.LastSeq = p.Sequence
 			}
 			c.LastSeen = time.Now()
+			// Rafraîchir tout de suite pour que le relâchement soit visible (pas seulement au prochain tick 60 Hz)
+			printClients(clients)
 			mu.Unlock()
 		}
 	}()
 
-	// Goroutine: periodically remove stale clients and refresh display
+	// Goroutine: périodiquement supprimer les clients inactifs et rafraîchir (si pas de paquet récent)
 	ticker := time.NewTicker(displayRefresh)
 	defer ticker.Stop()
 	for range ticker.C {
