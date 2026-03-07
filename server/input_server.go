@@ -1,0 +1,141 @@
+// Package main runs the UDP input server: listens for controller packets,
+// tracks clients, and displays server IP and connected clients' joycon state.
+package main
+
+import (
+	"fmt"
+	"net"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/joy-stream/protocol"
+)
+
+const (
+	listenAddr     = ":7355"       // UDP port for controller packets
+	displayRefresh = 500 * time.Millisecond
+	clientTimeout  = 3 * time.Second // consider client gone after no packet
+)
+
+type clientState struct {
+	Addr     string
+	Last     *protocol.Packet
+	LastSeq  uint16
+	LastSeen time.Time
+}
+
+func main() {
+	conn, err := net.ListenPacket("udp", listenAddr)
+	if err != nil {
+		fmt.Printf("Failed to start UDP server: %v\n", err)
+		return
+	}
+	defer conn.Close()
+
+	// Show server IP(s) so clients can connect
+	printServerIPs(listenAddr)
+
+	clients := make(map[string]*clientState)
+	var mu sync.RWMutex
+
+	// Goroutine: read UDP packets and update client state
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			n, remote, err := conn.ReadFrom(buf)
+			if err != nil {
+				return
+			}
+			if n != protocol.PacketSize {
+				continue
+			}
+			p, err := protocol.ParsePacket(buf[:n])
+			if err != nil {
+				continue
+			}
+
+			addr := remote.String()
+			mu.Lock()
+			c, ok := clients[addr]
+			if !ok {
+				c = &clientState{Addr: addr}
+				clients[addr] = c
+			}
+			// Ignore old sequence numbers (out-of-order or duplicate)
+			if p.Sequence >= c.LastSeq || c.Last == nil {
+				c.Last = p
+				c.LastSeq = p.Sequence
+			}
+			c.LastSeen = time.Now()
+			mu.Unlock()
+		}
+	}()
+
+	// Goroutine: periodically remove stale clients and refresh display
+	ticker := time.NewTicker(displayRefresh)
+	defer ticker.Stop()
+	for range ticker.C {
+		mu.Lock()
+		now := time.Now()
+		for addr, c := range clients {
+			if now.Sub(c.LastSeen) > clientTimeout {
+				delete(clients, addr)
+			}
+		}
+		printClients(clients)
+		mu.Unlock()
+	}
+}
+
+func printServerIPs(port string) {
+	fmt.Println("--- Joy-Stream UDP Input Server ---")
+	fmt.Println("Server is listening for controller packets.")
+	fmt.Println("Clients can connect to any of these addresses (UDP):")
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		fmt.Printf("  (could not list interfaces: %v)\n", err)
+		return
+	}
+	_, portNum, _ := net.SplitHostPort(port)
+	if portNum == "" {
+		portNum = "7355"
+	}
+	shown := make(map[string]struct{})
+	for _, a := range addrs {
+		ipNet, ok := a.(*net.IPNet)
+		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
+			continue
+		}
+		ip := ipNet.IP.String()
+		if _, ok := shown[ip]; ok {
+			continue
+		}
+		shown[ip] = struct{}{}
+		fmt.Printf("  %s:%s\n", ip, portNum)
+	}
+	fmt.Println("------------------------------------")
+}
+
+func printClients(clients map[string]*clientState) {
+	if len(clients) == 0 {
+		fmt.Printf("\r[%s] No clients connected. Waiting for packets...    ", time.Now().Format("15:04:05"))
+		return
+	}
+	lines := []string{fmt.Sprintf("[%s] %d client(s) connected:", time.Now().Format("15:04:05"), len(clients))}
+	for _, c := range clients {
+		line := "  " + c.Addr
+		if c.Last != nil {
+			line += " | seq=" + fmt.Sprint(c.Last.Sequence)
+			btns := c.Last.ButtonNames()
+			if len(btns) > 0 {
+				line += " | buttons: " + strings.Join(btns, ",")
+			}
+			line += fmt.Sprintf(" | L(%d,%d) R(%d,%d)", c.Last.LX, c.Last.LY, c.Last.RX, c.Last.RY)
+		} else {
+			line += " | no packet yet"
+		}
+		lines = append(lines, line)
+	}
+	fmt.Print("\r" + strings.Join(lines, "\n") + "\n")
+}
