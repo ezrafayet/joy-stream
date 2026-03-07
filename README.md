@@ -1,1 +1,1 @@
-Control a virtual Switch Joycon over the internet to enable 'local' multiplayer
+Control a virtual Nintendo Switch Joy-Con over the internet to enable local multiplayer on a physical Switch with remote players.
