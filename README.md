@@ -1,0 +1,1 @@
+Control a virtual Switch Joycon over the internet to enable 'local' multiplayer
