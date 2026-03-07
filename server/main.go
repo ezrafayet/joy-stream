@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	listenAddr     = ":7355"       // UDP port for controller packets
-	displayRefresh = 500 * time.Millisecond
-	clientTimeout  = 3 * time.Second // consider client gone after no packet
+	listenAddr     = ":7355"                // UDP port for controller packets
+	displayRefresh = time.Second / 60       // 60 Hz, comme le client = temps réel
+	clientTimeout  = 3 * time.Second        // consider client gone after no packet
 )
 
 type clientState struct {
