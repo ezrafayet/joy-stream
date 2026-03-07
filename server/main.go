@@ -4,7 +4,9 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -89,32 +91,74 @@ func main() {
 }
 
 func printServerIPs(port string) {
-	fmt.Println("--- Joy-Stream UDP Input Server ---")
-	fmt.Println("Server is listening for controller packets.")
-	fmt.Println("Clients can connect to any of these addresses (UDP):")
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		fmt.Printf("  (could not list interfaces: %v)\n", err)
-		return
-	}
 	_, portNum, _ := net.SplitHostPort(port)
 	if portNum == "" {
 		portNum = "7355"
 	}
-	shown := make(map[string]struct{})
-	for _, a := range addrs {
-		ipNet, ok := a.(*net.IPNet)
-		if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
-			continue
-		}
-		ip := ipNet.IP.String()
-		if _, ok := shown[ip]; ok {
-			continue
-		}
-		shown[ip] = struct{}{}
-		fmt.Printf("  %s:%s\n", ip, portNum)
+
+	fmt.Println("--- Joy-Stream UDP Input Server ---")
+	fmt.Println("Server is listening for controller packets (UDP).")
+	fmt.Println()
+
+	// Public IP = celle que ton frère au Japon (ou n'importe où) peut utiliser
+	publicIP := fetchPublicIP()
+	if publicIP != "" {
+		fmt.Printf("  >>> Connect from anywhere (e.g. Japan): %s:%s\n", publicIP, portNum)
+		fmt.Println()
 	}
+
+	// IPs locales pour le même réseau
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		shown := make(map[string]struct{})
+		for _, a := range addrs {
+			ipNet, ok := a.(*net.IPNet)
+			if !ok || ipNet.IP.IsLoopback() || ipNet.IP.To4() == nil {
+				continue
+			}
+			ip := ipNet.IP.String()
+			if _, ok := shown[ip]; ok {
+				continue
+			}
+			shown[ip] = struct{}{}
+			// Skip Docker bridges for cleaner output
+			if strings.HasPrefix(ip, "172.17.") || strings.HasPrefix(ip, "172.18.") {
+				continue
+			}
+			fmt.Printf("  On local network: %s:%s\n", ip, portNum)
+		}
+	}
+
 	fmt.Println("------------------------------------")
+}
+
+func fetchPublicIP() string {
+	client := &http.Client{Timeout: 3 * time.Second}
+	// Services qui renvoient juste l'IP en texte (pas de JSON)
+	urls := []string{
+		"https://api.ipify.org",
+		"https://ifconfig.me/ip",
+	}
+	for _, u := range urls {
+		resp, err := client.Get(u)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			continue
+		}
+		b, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			continue
+		}
+		ip := strings.TrimSpace(string(b))
+		if ip != "" && net.ParseIP(ip) != nil {
+			return ip
+		}
+	}
+	return ""
 }
 
 func printClients(clients map[string]*clientState) {
