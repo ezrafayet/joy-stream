@@ -5,18 +5,27 @@ package keyboard
 import (
 	"fmt"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/eiannone/keyboard"
 )
 
 // keyboardSource implements InputSource using the terminal keyboard package (darwin/windows).
+// The terminal API only reports key press (and repeat when held); we emit a synthetic
+// release per key 50ms after the last press event for that key, so long press doesn't release early.
 type keyboardSource struct {
-	ch   chan KeyEvent
-	name string
+	ch           chan KeyEvent
+	name         string
+	releaseDelay time.Duration
+	pending      map[Key]time.Time // one release per key, at this time
+	mu           sync.Mutex
+	done         chan struct{}
 }
 
 // NewKeyboard opens the terminal keyboard and returns an InputSource.
-// On Darwin/Windows we use the terminal; key release may not be reported.
+// On Darwin/Windows the terminal only gives key press (and repeat when held); we emit
+// KeyReleased 50ms after the last press event for each key.
 func NewKeyboard() (InputSource, error) {
 	if err := keyboard.Open(); err != nil {
 		return nil, err
@@ -26,8 +35,15 @@ func NewKeyboard() (InputSource, error) {
 	if os.Getenv("TERM") != "" {
 		name = fmt.Sprintf("terminal keyboard (%s)", os.Getenv("TERM"))
 	}
-	s := &keyboardSource{ch: ch, name: name}
+	s := &keyboardSource{
+		ch:           ch,
+		name:         name,
+		releaseDelay: 50 * time.Millisecond,
+		pending:      make(map[Key]time.Time),
+		done:         make(chan struct{}),
+	}
 	go s.run()
+	go s.releaseLoop()
 	return s, nil
 }
 
@@ -41,6 +57,7 @@ func (s *keyboardSource) DeviceName() string {
 
 func (s *keyboardSource) Close() error {
 	keyboard.Close()
+	close(s.done)
 	close(s.ch)
 	return nil
 }
@@ -58,11 +75,42 @@ func (s *keyboardSource) run() {
 		if key == 0 {
 			continue
 		}
-		ev := KeyEvent{Key: key, Type: KeyPressed}
 		select {
-		case s.ch <- ev:
+		case s.ch <- KeyEvent{Key: key, Type: KeyPressed}:
 		default:
 		}
+		s.scheduleRelease(key)
+	}
+}
+
+// scheduleRelease sets release for this key at now+releaseDelay (replaces any previous for same key).
+func (s *keyboardSource) scheduleRelease(key Key) {
+	s.mu.Lock()
+	s.pending[key] = time.Now().Add(s.releaseDelay)
+	s.mu.Unlock()
+}
+
+func (s *keyboardSource) releaseLoop() {
+	tick := time.NewTicker(20 * time.Millisecond)
+	defer tick.Stop()
+	for {
+		select {
+		case <-s.done:
+			return
+		case <-tick.C:
+		}
+		s.mu.Lock()
+		now := time.Now()
+		for key, at := range s.pending {
+			if !now.Before(at) {
+				delete(s.pending, key)
+				select {
+				case s.ch <- KeyEvent{Key: key, Type: KeyReleased}:
+				default:
+				}
+			}
+		}
+		s.mu.Unlock()
 	}
 }
 
