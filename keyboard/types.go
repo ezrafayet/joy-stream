@@ -1,3 +1,9 @@
+// Package keyboard provides key events (pressed/released) for the current platform.
+//
+// NewKeyboard() is implemented in exactly one file per build, selected by build tags:
+//   - Linux:    evdev_linux.go (evdev, works with Wayland and X11)
+//   - Windows / macOS: hook.go (gohook)
+// So there is no duplication at runtime — only the right file is compiled for the target OS.
 package keyboard
 
 import "fmt"

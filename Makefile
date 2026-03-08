@@ -4,7 +4,7 @@ build:
 	go build -o build/client ./client/...
 
 build-windows:
-
+	GOOS=windows GOARCH=amd64 go build -o build/client.exe ./client/...
 
 run-server:
 	./build/server
