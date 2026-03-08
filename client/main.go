@@ -42,10 +42,15 @@ func main() {
 	returnBeginningLine := "\r\033[K"
 
 	fmt.Println("Listening to:", source.DeviceName())
+	if os.Getenv("XDG_SESSION_TYPE") == "wayland" {
+		fmt.Println("Detected Wayland — gohook needs X11. Run: GDK_BACKEND=x11 ./build/client")
+	} else {
+		fmt.Println("(Linux: if no keys are detected, run under X11: GDK_BACKEND=x11 or use an X11 session)")
+	}
 	fmt.Print(returnBeginningLine)
 	fmt.Println("Press ESC to exit. Latest event:")
-	fmt.Println("")
 	fmt.Print(returnBeginningLine)
+	fmt.Print("  (no keys yet)\r")
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
 			fmt.Print(returnBeginningLine)

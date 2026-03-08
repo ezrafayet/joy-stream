@@ -1,5 +1,8 @@
 //go:build linux
 
+// Package keyboard: Linux implementation using evdev (works with Wayland and X11).
+// Requires read access to /dev/input/* — run: sudo adduser $USER input, then log out and back in.
+// On Windows and macOS, gohook is used instead (see hook.go).
 package keyboard
 
 import (
@@ -104,10 +107,8 @@ func (s *evdevSource) run() {
 		}
 		ev := KeyEvent{Key: Key(e.Code)}
 		switch e.Value {
-		// ////////// Not supported in Windows...
-		// case 0:
-		// 	ev.Type = KeyReleased
-		// //////////////////////////////////
+		case 0:
+			ev.Type = KeyReleased
 		case 1, 2:
 			ev.Type = KeyPressed
 		default:

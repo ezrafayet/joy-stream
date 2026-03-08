@@ -3,6 +3,9 @@ build:
 	go build -o build/server ./server/...
 	go build -o build/client ./client/...
 
+build-windows:
+
+
 run-server:
 	./build/server
 
