@@ -4,4 +4,6 @@ use (
 	./client
 	./protocol
 	./server
+	./keyboard
+	./network
 )

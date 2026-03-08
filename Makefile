@@ -7,4 +7,4 @@ run-server:
 	./build/server
 
 run-client:
-	./build/client
+	sudo ./build/client
