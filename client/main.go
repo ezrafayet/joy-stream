@@ -5,9 +5,21 @@ import (
 	"os"
 
 	"keyboard"
+
+	"golang.org/x/term"
 )
 
 func main() {
+	// Prevent terminal from echoing keypresses; restore on exit.
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		state, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "terminal:", err)
+			os.Exit(1)
+		}
+		defer term.Restore(int(os.Stdin.Fd()), state)
+	}
+
 	source, err := keyboard.NewKeyboard()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
