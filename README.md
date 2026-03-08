@@ -7,10 +7,13 @@ go build -o build/server ./server/...
 go build -o build/client ./client/...
 ```
 
-**Linux:** The keyboard client uses gohook and requires X11 dev headers. Install before building:
+**Linux:** The client uses evdev (no X11). Ensure your user can read the keyboard: `sudo adduser $USER input`, then log out and back in.
 
-- Debian/Ubuntu: `sudo apt-get install libx11-dev libx11-xcb-dev libxkbcommon-dev libxkbcommon-x11-dev libxtst-dev`
-- Fedora/RHEL: `sudo dnf install libX11-devel`
-- Arch: `sudo pacman -S libx11`
+**Cross-compile for Windows** (from Linux):
 
-(gohook works under X11 only, not Wayland.)
+```bash
+sudo apt-get install gcc-mingw-w64   # one-time
+make build-windows
+```
+
+Uses MinGW and CGO; the client binary is `build/client.exe`.
