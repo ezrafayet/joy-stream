@@ -1,6 +1,6 @@
 //go:build linux
 
-package inputsource
+package keyboard
 
 import (
 	"fmt"

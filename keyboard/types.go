@@ -1,4 +1,4 @@
-package inputsource
+package keyboard
 
 import "fmt"
 

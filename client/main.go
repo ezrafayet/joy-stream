@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	source, err := inputsource.NewKeyboard()
+	source, err := keyboard.NewKeyboard()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -16,12 +16,12 @@ func main() {
 	defer source.Close()
 
 	fmt.Println("Listening to:", source.DeviceName())
-	fmt.Println("Press keys (Ctrl+C or close terminal to exit). Events:")
+	fmt.Println("Press keys (Ctrl+C to exit). Latest event:")
 	for ev := range source.Events() {
-		fmt.Println("event received:", ev)
 		if ev.Key.String() == "ESC" {
-			fmt.Println("Exiting...")
+			fmt.Println("\nExiting... Good bye punk!")
 			os.Exit(0)
 		}
+		fmt.Printf("\r  %-40s", ev.String())
 	}
 }

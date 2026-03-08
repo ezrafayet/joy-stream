@@ -1,6 +1,6 @@
 //go:build darwin || windows
 
-package inputsource
+package keyboard
 
 import (
 	"fmt"
