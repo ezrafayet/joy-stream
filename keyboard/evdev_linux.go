@@ -9,12 +9,14 @@ import (
 	"github.com/holoplot/go-evdev"
 )
 
-// evdevSource implements InputSource by reading from a Linux evdev device.
 type evdevSource struct {
 	dev  *evdev.InputDevice
 	name string
 	ch   chan KeyEvent
 }
+
+// evdevSource implements InputSource
+var _ InputSource = (*evdevSource)(nil)
 
 // NewKeyboard opens the first available keyboard (evdev device with EV_KEY
 // and letter keys like KEY_A). Skips touchpads/mice that also have EV_KEY.
@@ -102,8 +104,10 @@ func (s *evdevSource) run() {
 		}
 		ev := KeyEvent{Key: Key(e.Code)}
 		switch e.Value {
-		case 0:
-			ev.Type = KeyReleased
+		// ////////// Not supported in Windows...
+		// case 0:
+		// 	ev.Type = KeyReleased
+		// //////////////////////////////////
 		case 1, 2:
 			ev.Type = KeyPressed
 		default:
@@ -111,8 +115,6 @@ func (s *evdevSource) run() {
 		}
 		select {
 		case s.ch <- ev:
-		default:
-			// channel full, drop
 		}
 	}
 }
