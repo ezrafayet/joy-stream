@@ -27,6 +27,8 @@ func main() {
 	}
 	defer source.Close()
 
+	var keysState = make(map[keyboard.Key]bool)
+
 	// Now switch to raw mode so keypresses aren't echoed
 	if term.IsTerminal(int(os.Stdin.Fd())) {
 		state, err := term.MakeRaw(int(os.Stdin.Fd()))
@@ -52,6 +54,7 @@ func main() {
 			os.Exit(0)
 			break
 		}
+		keysState[ev.Key] = ev.Type == keyboard.KeyPressed
 		fmt.Print(returnBeginningLine)
 		fmt.Printf("\r  %s\033[K", ev.String())
 	}
