@@ -56,6 +56,6 @@ func main() {
 		}
 		keysState[ev.Key] = ev.Type == keyboard.KeyPressed
 		fmt.Print(returnBeginningLine)
-		fmt.Printf("\r  %s\033[K", ev.String())
+		fmt.Printf("\r  %s\033[K", keysState)
 	}
 }
