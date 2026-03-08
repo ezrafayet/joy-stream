@@ -27,13 +27,23 @@ func main() {
 	}
 	defer source.Close()
 
+	returnBeginningLine := "\r\033[K"
+
+	// come back to the begining of the line 
+	fmt.Print(returnBeginningLine)
 	fmt.Println("Listening to:", source.DeviceName())
+	fmt.Print(returnBeginningLine)
 	fmt.Println("Press keys (Ctrl+C to exit). Latest event:")
+	fmt.Print(returnBeginningLine)
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
+			fmt.Print(returnBeginningLine)
 			fmt.Println("\nExiting... Good bye punk!")
+			fmt.Print(returnBeginningLine)
 			os.Exit(0)
 		}
-		fmt.Printf("\r  %-40s", ev.String())
+		fmt.Print(returnBeginningLine)
+		fmt.Printf("\r  %s\033[K", ev.String())
+		// fmt.Print(returnBeginningLine)
 	}
 }
