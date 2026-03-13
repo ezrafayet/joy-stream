@@ -1,5 +1,5 @@
 // Package main runs the UDP input server: listens for controller packets,
-// tracks clients, and displays server IP and connected clients' joycon state.
+// tracks clients, and displays server IP and connected clients' gamepad state.
 package main
 
 import (
@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/joy-stream/protocol"
+	"github.com/joy-stream/gamepad"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 
 type clientState struct {
 	Addr     string
-	Last     *protocol.Packet
+	Last     *gamepad.State
 	LastSeq  uint16
 	LastSeen time.Time
 }
@@ -49,10 +49,10 @@ func main() {
 			if err != nil {
 				return
 			}
-			if n != protocol.PacketSize {
+			if n != gamepad.PacketSize {
 				continue
 			}
-			p, err := protocol.ParsePacket(buf[:n])
+			st, err := gamepad.Unmarshal(buf[:n])
 			if err != nil {
 				continue
 			}
@@ -64,10 +64,9 @@ func main() {
 				c = &clientState{Addr: addr}
 				clients[addr] = c
 			}
-			// Ignore old sequence numbers (out-of-order or duplicate)
-			if p.Sequence >= c.LastSeq || c.Last == nil {
-				c.Last = p
-				c.LastSeq = p.Sequence
+			if st.Sequence >= c.LastSeq || c.Last == nil {
+				c.Last = st
+				c.LastSeq = st.Sequence
 			}
 			c.LastSeen = time.Now()
 			// Rafraîchir tout de suite pour que le relâchement soit visible (pas seulement au prochain tick 60 Hz)
