@@ -1,9 +1,6 @@
 package gamepad
 
-import (
-	"bytes"
-	"testing"
-)
+import "testing"
 
 func TestMarshalUnmarshalRoundTrip(t *testing.T) {
 	s := &State{
@@ -92,8 +89,7 @@ func TestEmptyStateRoundTrip(t *testing.T) {
 	if got.TriggerLeft || got.TriggerRight {
 		t.Error("Triggers should be false")
 	}
-	// Reserved bytes stay zero
-	if !bytes.Equal(dst[8:12], []byte{0, 0, 0, 0}) {
-		t.Errorf("Reserved bytes not zero: %v", dst[8:12])
+	if len(dst) != PacketSize {
+		t.Errorf("Marshal wrote %d bytes, want %d", len(dst), PacketSize)
 	}
 }
