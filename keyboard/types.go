@@ -46,11 +46,11 @@ func (k Key) String() string {
 
 var keyNames = map[Key]string{
 	1:   "ESC",
-	57:  "SPACE",
-	103: "UP",
-	105: "LEFT",
-	106: "RIGHT",
-	108: "DOWN",
+	// 57:  "SPACE",
+	// 103: "UP",
+	// 105: "LEFT",
+	// 106: "RIGHT",
+	// 108: "DOWN",
 }
 
 // InputSource emits a stream of key events

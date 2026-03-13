@@ -3,6 +3,8 @@ package gamepad
 import (
 	"encoding/binary"
 	"errors"
+
+	"fmt"
 )
 
 const PacketSize = 5
@@ -134,3 +136,10 @@ func (s *State) SetStickRight(pressed bool) { s.StickRight = pressed }
 func (s *State) SetTriggerLeft(pressed bool) { s.TriggerLeft = pressed }
 func (s *State) SetTriggerRight(pressed bool) { s.TriggerRight = pressed }
 
+func (s *State) String() string {
+	bit := func(b bool) int { if b { return 1 }; return 0 }
+	return fmt.Sprintf("DPad↑→↓←: %d%d%d%d, Stick↑→↓←: %d%d%d%d, Trig←→: %d%d, Seq: %d",
+		bit(s.DpadUp), bit(s.DpadRight), bit(s.DpadDown), bit(s.DpadLeft),
+		bit(s.StickUp), bit(s.StickRight), bit(s.StickDown), bit(s.StickLeft),
+		bit(s.TriggerLeft), bit(s.TriggerRight), s.Sequence)
+}

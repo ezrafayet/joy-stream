@@ -7,6 +7,7 @@ import (
 	"keyboard"
 
 	"golang.org/x/term"
+	"github.com/joy-stream/gamepad"
 )
 
 var title = 
@@ -28,7 +29,7 @@ func main() {
 	}
 	defer source.Close()
 
-	var keysState = make(map[keyboard.Key]bool)
+	gamepad := gamepad.State{}
 
 	// Now switch to raw mode so keypresses aren't echoed
 	if term.IsTerminal(int(os.Stdin.Fd())) {
@@ -60,8 +61,8 @@ func main() {
 			os.Exit(0)
 			break
 		}
-		keysState[ev.Key] = ev.Type == keyboard.KeyPressed
+		// keysState[ev.Key] = ev.Type == keyboard.KeyPressed
 		fmt.Print(returnBeginningLine)
-		fmt.Printf("\r  %s\033[K", keysState)
+		fmt.Printf("\r  %s\033[K", gamepad.String(), ev.Key)
 	}
 }

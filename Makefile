@@ -16,3 +16,6 @@ run-server:
 
 run-client:
 	sudo ./build/client
+
+test:
+	go test ./gamepad/...
