@@ -136,6 +136,14 @@ func (s *State) SetStickRight(pressed bool) { s.StickRight = pressed }
 func (s *State) SetTriggerLeft(pressed bool) { s.TriggerLeft = pressed }
 func (s *State) SetTriggerRight(pressed bool) { s.TriggerRight = pressed }
 
+func (s *State) IncrementSequence() {
+	if s.Sequence == 0xFFFF {
+		s.Sequence = 0
+	} else {
+		s.Sequence++
+	}
+}
+
 func (s *State) String() string {
 	bit := func(b bool) int { if b { return 1 }; return 0 }
 	return fmt.Sprintf("DPad↑→↓←: %d%d%d%d, Stick↑→↓←: %d%d%d%d, Trig←→: %d%d, Seq: %d",
