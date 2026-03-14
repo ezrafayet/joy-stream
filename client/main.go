@@ -1,13 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"keyboard"
 
-	"golang.org/x/term"
 	"github.com/joy-stream/gamepad"
+	"golang.org/x/term"
 )
 
 var title = 
@@ -36,6 +38,22 @@ type Mapping struct {
 func main() {
 	fmt.Println(title)
 
+	//////////////////// server address /////////////////
+	fmt.Print("Server address (host or host:port) [like 127.0.0.1:7355]: ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		fmt.Fprintln(os.Stderr, "no input")
+		os.Exit(1)
+	}
+	serverAddr := strings.TrimSpace(scanner.Text())
+	if serverAddr == "" {
+		panic("no server address provided")
+	} else if !strings.Contains(serverAddr, ":") {
+		panic("server address must be in the format host:port")
+	}
+	fmt.Println("Using server:", serverAddr)
+	////////////////////////////////////////////////////
+	
 	source, err := keyboard.NewKeyboard()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -78,7 +96,7 @@ func main() {
 	fmt.Print(returnBeginningLine)
 	fmt.Println("Press ESC to exit. Latest event:")
 	fmt.Print(returnBeginningLine)
-	fmt.Print("(no keys yet)\r")
+	fmt.Printf("\r%s\033[K", gamepad.String())
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
 			fmt.Print(returnBeginningLine)
