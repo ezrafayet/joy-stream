@@ -63,6 +63,6 @@ func main() {
 		}
 		// keysState[ev.Key] = ev.Type == keyboard.KeyPressed
 		fmt.Print(returnBeginningLine)
-		fmt.Printf("\r  %s\033[K", gamepad.String(), fmt.Sprintf("Key: %s", ev.Key))
+		fmt.Printf("\r  %s,  Pressed: %s\033[K", gamepad.String(), ev.Key)
 	}
 }
