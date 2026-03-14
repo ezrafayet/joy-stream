@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"keyboard"
-	"network"
+	"udp"
 
 	"github.com/joy-stream/gamepad"
 	"golang.org/x/term"
@@ -57,9 +57,9 @@ func main() {
 	fmt.Println("Using server:", serverAddr)
 	////////////////////////////////////////////////////
 
-	sender, err := network.NewSender(serverAddr)
+	sender, err := udp.NewSender(serverAddr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "network:", err)
+		fmt.Fprintln(os.Stderr, "udp:", err)
 		os.Exit(1)
 	}
 	defer sender.Close()

@@ -5,7 +5,7 @@ go 1.25.1
 require (
 	github.com/joy-stream/gamepad v0.0.0
 	keyboard                 v0.0.0
-	network                  v0.0.0
+	udp                      v0.0.0
 )
 
 require (
@@ -16,4 +16,4 @@ require (
 
 replace github.com/joy-stream/gamepad => ../gamepad
 replace keyboard => ../keyboard
-replace network => ../network
+replace udp => ../udp
