@@ -78,7 +78,7 @@ func main() {
 	fmt.Print(returnBeginningLine)
 	fmt.Println("Press ESC to exit. Latest event:")
 	fmt.Print(returnBeginningLine)
-	fmt.Print("  (no keys yet)\r")
+	fmt.Print("(no keys yet)\r")
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
 			fmt.Print(returnBeginningLine)
@@ -135,6 +135,6 @@ func main() {
 			}
 		}
 		fmt.Print(returnBeginningLine)
-		fmt.Printf("\r  %s,  Pressed: %s\033[K", gamepad.String(), ev.Key)
+		fmt.Printf("\r%s,  Pressed: %s\033[K", gamepad.String(), ev.Key)
 	}
 }
