@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"fmt"
+	"bytes"
 )
 
 const PacketSize = 5
@@ -150,4 +151,11 @@ func (s *State) String() string {
 		bit(s.DpadUp), bit(s.DpadRight), bit(s.DpadDown), bit(s.DpadLeft),
 		bit(s.StickUp), bit(s.StickRight), bit(s.StickDown), bit(s.StickLeft),
 		bit(s.TriggerLeft), bit(s.TriggerRight), s.Sequence)
+}
+
+func (s *State) IsEqual(data []byte) bool {
+	if len(data) != PacketSize {
+		return false
+	}
+	return bytes.Equal(s.Marshal(make([]byte, PacketSize)), data)
 }

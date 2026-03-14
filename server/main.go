@@ -56,6 +56,7 @@ func main() {
 			if err != nil {
 				continue
 			}
+			fmt.Printf("[%s] from %s: %s\n", time.Now().Format("15:04:05"), remote, st.String())
 
 			addr := remote.String()
 			mu.Lock()
@@ -171,20 +172,7 @@ func printClients(clients map[string]*clientState) {
 		for _, c := range clients {
 			line += c.Addr
 			if c.Last != nil {
-				btns := c.Last.ButtonNames()
-				dpad := c.Last.DpadNames()
-				if len(btns) > 0 || len(dpad) > 0 {
-					line += " → pressé: "
-					if len(btns) > 0 {
-						line += "boutons " + strings.Join(btns, ",")
-					}
-					if len(dpad) > 0 {
-						if len(btns) > 0 {
-							line += "  "
-						}
-						line += "D-pad " + strings.Join(dpad, ",")
-					}
-				}
+				line += " → " + c.Last.String()
 			}
 			line += "  "
 		}

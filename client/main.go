@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
+	"time"
 
 	"keyboard"
+	"network"
 
 	"github.com/joy-stream/gamepad"
 	"golang.org/x/term"
@@ -53,7 +56,14 @@ func main() {
 	}
 	fmt.Println("Using server:", serverAddr)
 	////////////////////////////////////////////////////
-	
+
+	sender, err := network.NewSender(serverAddr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "network:", err)
+		os.Exit(1)
+	}
+	defer sender.Close()
+
 	source, err := keyboard.NewKeyboard()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -61,7 +71,9 @@ func main() {
 	}
 	defer source.Close()
 
-	gamepad := gamepad.State{}
+	var gamepadMu sync.Mutex
+	var seq uint16
+	gp := gamepad.State{}
 	mapping := Mapping{
 		DpadUp:       23, // i
 		DpadDown:     37, // k
@@ -93,10 +105,27 @@ func main() {
 	} else {
 		fmt.Println("(Linux: if no keys are detected, run under X11: GDK_BACKEND=x11 or use an X11 session)")
 	}
+	// 60 Hz send loop
+	go func() {
+		ticker := time.NewTicker(time.Second / 60)
+		defer ticker.Stop()
+		for range ticker.C {
+			gamepadMu.Lock()
+			gp.Sequence = seq
+			seq++
+			buf := make([]byte, gamepad.PacketSize)
+			gp.Marshal(buf)
+			gamepadMu.Unlock()
+			_ = sender.Send(buf)
+		}
+	}()
+
 	fmt.Print(returnBeginningLine)
 	fmt.Println("Press ESC to exit. Latest event:")
 	fmt.Print(returnBeginningLine)
-	fmt.Printf("\r%s\033[K", gamepad.String())
+	gamepadMu.Lock()
+	fmt.Printf("\r%s\033[K", gp.String())
+	gamepadMu.Unlock()
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
 			fmt.Print(returnBeginningLine)
@@ -105,54 +134,57 @@ func main() {
 			os.Exit(0)
 			break
 		}
+		gamepadMu.Lock()
 		if ev.Type == keyboard.KeyPressed {
 			switch uint16(ev.Key) {
 			case mapping.DpadUp:
-				gamepad.SetDpadUp(true)
+				gp.SetDpadUp(true)
 			case mapping.DpadDown:
-				gamepad.SetDpadDown(true)
+				gp.SetDpadDown(true)
 			case mapping.DpadLeft:
-				gamepad.SetDpadLeft(true)
+				gp.SetDpadLeft(true)
 			case mapping.DpadRight:
-				gamepad.SetDpadRight(true)
+				gp.SetDpadRight(true)
 			case mapping.StickUp:
-				gamepad.SetStickUp(true)
+				gp.SetStickUp(true)
 			case mapping.StickDown:
-				gamepad.SetStickDown(true)
+				gp.SetStickDown(true)
 			case mapping.StickLeft:
-				gamepad.SetStickLeft(true)
+				gp.SetStickLeft(true)
 			case mapping.StickRight:
-				gamepad.SetStickRight(true)
+				gp.SetStickRight(true)
 			case mapping.TriggerLeft:
-				gamepad.SetTriggerLeft(true)
+				gp.SetTriggerLeft(true)
 			case mapping.TriggerRight:
-				gamepad.SetTriggerRight(true)
+				gp.SetTriggerRight(true)
 			}
 		} else if ev.Type == keyboard.KeyReleased {
 			switch uint16(ev.Key) {
 			case mapping.DpadUp:
-				gamepad.SetDpadUp(false)
+				gp.SetDpadUp(false)
 			case mapping.DpadDown:
-				gamepad.SetDpadDown(false)
+				gp.SetDpadDown(false)
 			case mapping.DpadLeft:
-				gamepad.SetDpadLeft(false)
+				gp.SetDpadLeft(false)
 			case mapping.DpadRight:
-				gamepad.SetDpadRight(false)
+				gp.SetDpadRight(false)
 			case mapping.StickUp:
-				gamepad.SetStickUp(false)
+				gp.SetStickUp(false)
 			case mapping.StickDown:
-				gamepad.SetStickDown(false)
+				gp.SetStickDown(false)
 			case mapping.StickLeft:
-				gamepad.SetStickLeft(false)
+				gp.SetStickLeft(false)
 			case mapping.StickRight:
-				gamepad.SetStickRight(false)
+				gp.SetStickRight(false)
 			case mapping.TriggerLeft:
-				gamepad.SetTriggerLeft(false)
+				gp.SetTriggerLeft(false)
 			case mapping.TriggerRight:
-				gamepad.SetTriggerRight(false)
+				gp.SetTriggerRight(false)
 			}
 		}
+		stateStr := gp.String()
+		gamepadMu.Unlock()
 		fmt.Print(returnBeginningLine)
-		fmt.Printf("\r%s,  Pressed: %s\033[K", gamepad.String(), ev.Key)
+		fmt.Printf("\r%s,  Pressed: %s\033[K", stateStr, ev.Key)
 	}
 }
