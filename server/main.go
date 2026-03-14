@@ -4,8 +4,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 )
 
 const listenAddr = ":7355"
+const port = "7355"
 
 func main() {
 	recv, err := udp.NewReceiver(listenAddr)
@@ -24,6 +28,11 @@ func main() {
 	defer recv.Close()
 
 	fmt.Printf("Joy-Stream UDP server listening on %s\n", listenAddr)
+	if publicIP := fetchPublicIP(); publicIP != "" {
+		fmt.Printf("Connect from anywhere: %s:%s\n", publicIP, port)
+		fmt.Println("(Forward UDP 7355 on your router to this machine; allow it in the firewall.)")
+	}
+	fmt.Println()
 
 	var mu sync.Mutex
 	clients := make(map[string]*gamepad.State)
@@ -45,4 +54,29 @@ func main() {
 	})
 
 	select {}
+}
+
+func fetchPublicIP() string {
+	client := &http.Client{Timeout: 3 * time.Second}
+	urls := []string{"https://api.ipify.org", "https://ifconfig.me/ip"}
+	for _, u := range urls {
+		resp, err := client.Get(u)
+		if err != nil {
+			continue
+		}
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			continue
+		}
+		b, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			continue
+		}
+		ip := strings.TrimSpace(string(b))
+		if ip != "" && net.ParseIP(ip) != nil {
+			return ip
+		}
+	}
+	return ""
 }
