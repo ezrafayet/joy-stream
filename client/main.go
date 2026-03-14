@@ -107,6 +107,7 @@ func main() {
 	}
 	// 60 Hz send loop
 	go func() {
+		fmt.Fprintf(os.Stderr, "[client] sending to %s at 60 Hz\n", serverAddr)
 		ticker := time.NewTicker(time.Second / 60)
 		defer ticker.Stop()
 		for range ticker.C {
@@ -116,7 +117,9 @@ func main() {
 			buf := make([]byte, gamepad.PacketSize)
 			gp.Marshal(buf)
 			gamepadMu.Unlock()
-			_ = sender.Send(buf)
+			if err := sender.Send(buf); err != nil {
+				fmt.Fprintf(os.Stderr, "send error: %v\n", err)
+			}
 		}
 	}()
 

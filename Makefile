@@ -2,8 +2,8 @@
 
 build:
 	rm -rf ./build
-	go build -o build/server ./server/...
-	go build -o build/client ./client/...
+	go build -o build/server ./server
+	go build -o build/client ./client
 
 # Cross-compile client for Windows (from Linux). Requires: sudo apt-get install gcc-mingw-w64
 build-windows:
