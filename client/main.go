@@ -128,6 +128,7 @@ func main() {
 	fmt.Print(returnBeginningLine)
 	gamepadMu.Lock()
 	fmt.Printf("\r%s\033[K", gp.String())
+	fmt.Print(returnBeginningLine)
 	gamepadMu.Unlock()
 	for ev := range source.Events() {
 		if ev.Key.String() == "ESC" {
@@ -138,52 +139,28 @@ func main() {
 			break
 		}
 		gamepadMu.Lock()
-		if ev.Type == keyboard.KeyPressed {
-			switch uint16(ev.Key) {
-			case mapping.DpadUp:
-				gp.SetDpadUp(true)
-			case mapping.DpadDown:
-				gp.SetDpadDown(true)
-			case mapping.DpadLeft:
-				gp.SetDpadLeft(true)
-			case mapping.DpadRight:
-				gp.SetDpadRight(true)
-			case mapping.StickUp:
-				gp.SetStickUp(true)
-			case mapping.StickDown:
-				gp.SetStickDown(true)
-			case mapping.StickLeft:
-				gp.SetStickLeft(true)
-			case mapping.StickRight:
-				gp.SetStickRight(true)
-			case mapping.TriggerLeft:
-				gp.SetTriggerLeft(true)
-			case mapping.TriggerRight:
-				gp.SetTriggerRight(true)
-			}
-		} else if ev.Type == keyboard.KeyReleased {
-			switch uint16(ev.Key) {
-			case mapping.DpadUp:
-				gp.SetDpadUp(false)
-			case mapping.DpadDown:
-				gp.SetDpadDown(false)
-			case mapping.DpadLeft:
-				gp.SetDpadLeft(false)
-			case mapping.DpadRight:
-				gp.SetDpadRight(false)
-			case mapping.StickUp:
-				gp.SetStickUp(false)
-			case mapping.StickDown:
-				gp.SetStickDown(false)
-			case mapping.StickLeft:
-				gp.SetStickLeft(false)
-			case mapping.StickRight:
-				gp.SetStickRight(false)
-			case mapping.TriggerLeft:
-				gp.SetTriggerLeft(false)
-			case mapping.TriggerRight:
-				gp.SetTriggerRight(false)
-			}
+		pressed := ev.Type == keyboard.KeyPressed
+		switch uint16(ev.Key) {
+		case mapping.DpadUp:
+			gp.SetDpadUp(pressed)
+		case mapping.DpadDown:
+			gp.SetDpadDown(pressed)
+		case mapping.DpadLeft:
+			gp.SetDpadLeft(pressed)
+		case mapping.DpadRight:
+			gp.SetDpadRight(pressed)
+		case mapping.StickUp:
+			gp.SetStickUp(pressed)
+		case mapping.StickDown:
+			gp.SetStickDown(pressed)
+		case mapping.StickLeft:
+			gp.SetStickLeft(pressed)
+		case mapping.StickRight:
+			gp.SetStickRight(pressed)
+		case mapping.TriggerLeft:
+			gp.SetTriggerLeft(pressed)
+		case mapping.TriggerRight:
+			gp.SetTriggerRight(pressed)
 		}
 		stateStr := gp.String()
 		gamepadMu.Unlock()
